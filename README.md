@@ -1,216 +1,118 @@
-# MTL Quantization
+# MTL Quantization for Multi-Task Learning
 
-A research-oriented PyTorch project for exploring quantization and sparsity in Multi-Task Learning (MTL). The repository combines a shared ResNet-style backbone with multiple task-specific heads for NYU-v2 based scene understanding tasks, with experiments focused on monitoring compression behavior and multi-task performance trade-offs.
+A research project exploring model compression in **multi-task dense prediction** with PyTorch. The experiments combine a shared ResNet-18 feature extractor with task-specific prediction heads and investigate quantization, sparsity, model size, and inference performance on the NYU-v2 dataset.
 
-## Overview
+## Project at a glance
 
-This project investigates how quantization-aware training and sparsity analysis affect a multi-task model that jointly predicts:
+The model is configured to predict three tasks from the same input:
 
-- semantic segmentation
-- surface normals
-- depth estimation
+- **Semantic segmentation** (`segment_semantic`, 40 classes)
+- **Surface-normal estimation** (`normal`, 3 channels)
+- **Depth estimation** (`depth_zbuffer`, 1 channel)
 
-The implementation centers around a shared feature extractor and task-specific output heads, with training and validation pipelines written in PyTorch.
+The shared representation is produced by a pretrained ResNet-18 backbone. Each task has its own ASPP-based output head. Training and validation use task-specific losses and metrics.
 
-## Motivation
+## Components and technologies
 
-Multi-task learning aims to train one model that can solve several related problems at once while sharing representational capacity. In this repository, the emphasis is on understanding whether compression and sparsity techniques can reduce memory and computation without significantly harming task performance.
+| Component | Purpose in this project |
+|---|---|
+| Python and Jupyter Notebook | Experiment scripts and interactive exploration (`MTL_test2.py`, `MTL_test1.ipynb`) |
+| PyTorch | Neural-network modules, training, optimization, checkpointing, and tensor operations |
+| Torchvision | ResNet-18 backbone and image utilities |
+| NYU-v2 dataset utilities (`TreeMTL`) | Dataset loading, task losses, task metrics, and ASPP task heads |
+| DGMS components (`DGMSParent`) | Custom convolution modules and sparsity-related utilities used in the DGMS experiments |
+| PyTorch quantization | Eager-mode quantization utilities in `print_size_of_model.py`, including quant/dequant stubs and model size comparisons |
+| NumPy and tqdm | Numeric processing and progress reporting |
+| Matplotlib and Seaborn | Plotting and experiment visualization |
+| TensorBoard | Training summaries and histogram logging via PyTorch's TensorBoard integration |
 
-## Repository Structure
+The project explores two related compression workflows: custom `DGMSConv` layer conversion and sparsity analysis, and PyTorch's built-in quantization flow in the model-size evaluation script. These workflows are experimental and are not necessarily enabled by default.
+
+## Repository structure
 
 ```text
 MTL_QUANTIZATION/
-├── MTL_test1.ipynb                 # Notebook-based exploratory workflow
-├── MTL_test2.py                   # Main training and evaluation pipeline
-├── TreeMTL/                       # Multi-task model and dataset utilities
-├── DGMSParent/                    # DGMS-related utilities and model components
-├── experiment_results/            # Experiment result artifacts
-├── graphs/                         # Generated plots and visual summaries
-├── __init__.py                    # Package marker
-├── actual_jobs.txt                # Job/task metadata
-├── check_sparsity.py              # Sparsity analysis utilities
-├── compression_rate.txt           # Compression and sparsity metrics
-├── error_bar.py                   # Visualization helpers for error bars
-├── individual_model_evals.txt     # Per-model evaluation data
-├── model.txt                      # Serialized model description
-├── notes.txt                      # Notes and observations
-├── output.txt                     # Training output logs
-├── output1.txt                    # Additional output logs
-├── output2.txt                    # Additional output logs
-├── pretrained_features.txt        # Pretrained feature info
-├── print_size_of_model.py         # Size and parameter summary utility
-├── requirements.txt               # Python dependency list
-├── validation_results.txt         # Validation metrics output
-├── validation_results2.txt        # Additional validation metrics output
-├── val30kiters.txt                # Validation run data
-├── val600iters.txt                # Validation run data
-├── val600iters_savedmodels.txt    # Saved model metadata
-├── README.md                      # Project documentation
-└── .gitignore                     # Git ignore rules (if present locally)
+├── MTL_test1.ipynb              # Notebook experiments
+├── MTL_test2.py                 # Multi-task model training and validation
+├── TreeMTL/                     # Dataset, model-head, loss, and metric utilities
+├── testing_pytorch_quantiation/ # PyTorch quantization experiments
+├── experiment_results/          # Experiment artifacts
+├── graphs/                      # Plots and visualizations
+├── check_sparsity.py            # Model sparsity analysis
+├── print_size_of_model.py       # Quantized model size and inference evaluation
+├── error_bar.py                 # Error-bar and experiment plots
+├── requirements.txt             # Python dependencies
+└── *.txt                        # Experiment logs, metrics, and notes
 ```
 
-## Core Components
+Some scripts import `DGMSParent` modules. Make sure that package is available in your environment and on `PYTHONPATH`; it may need to be obtained or configured separately if it is not present in your checkout.
 
-### 1. Training Pipeline
+## Setup
 
-The main pipeline is implemented in `MTL_test2.py` and includes:
-
-- dataset loading for NYU-v2
-- model construction with a shared backbone and task heads
-- multi-task loss aggregation
-- training and validation loops
-- logging and result saving
-
-### 2. Multi-Task Model
-
-The model design is centered on a shared backbone with independent output heads for each task. The task set in the project is:
-
-```python
-tasks = ('segment_semantic', 'normal', 'depth_zbuffer')
-```
-
-### 3. Quantization and Sparsity Analysis
-
-The project includes utilities for:
-
-- measuring sparsity
-- evaluating compression trends
-- visualizing validation behavior
-- comparing model performance under different experiment settings
-
-## Requirements
-
-This project targets a Python environment with PyTorch and related scientific libraries installed.
-
-### Python
-
-- Python 3.8+
-
-### Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-The repository's dependency list includes:
-
-- numpy
-- pandas
-- scikit-learn
-- matplotlib
-- seaborn
-- jupyter
-- torch
-- torchvision
-- tqdm
-
-## Getting Started
-
-### Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/saravanavel07/MTL_QUANTIZATION.git
 cd MTL_QUANTIZATION
 ```
 
-### Create a Virtual Environment (recommended)
+### 2. Create an environment and install dependencies
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate    # Linux/macOS
-# .venv\Scripts\activate     # Windows
-```
-
-### Install Dependencies
-
-```bash
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Dataset Setup
+The dependency file includes NumPy, pandas, scikit-learn, Matplotlib, Seaborn, Jupyter, PyTorch, Torchvision, and tqdm. Install a PyTorch build compatible with your operating system and CUDA setup if you plan to use a GPU. TensorBoard support may also require installing `tensorboard` separately in your environment.
 
-The project uses NYU-v2 data and references a local dataset directory in the training script:
+## Data and configuration
 
-```python
-dataroot = "/home/sbajaj/MyCode/quantization_remote/Datasets/nyu_v2"
-```
+The training and evaluation scripts expect the **NYU-v2** dataset and currently contain machine-specific dataset and checkpoint paths. Before running them:
 
-Before running the project, update this path to match your local environment or your dataset location.
+1. Obtain and prepare NYU-v2 in the format expected by `TreeMTL.data.nyuv2_dataloader_adashare.NYU_v2`.
+2. Change the `dataroot` and checkpoint/output paths in the script you intend to run to match your local setup.
+3. Ensure `TreeMTL` and the required `DGMSParent` modules can be imported.
 
-## Running the Project
+The checked-in scripts include absolute paths from the original experiment environment, so they will not work unchanged on most machines. `MTL_test2.py` also calls `.cuda()` directly; as written, it expects a CUDA-enabled environment.
 
-The primary experiment script is:
+## Running experiments
+
+The primary training script is:
 
 ```bash
 python MTL_test2.py
 ```
 
-This script typically performs the following:
+In the current script, `perform_quantization` is set to `False` by default. Review the configuration near the top of the file before running and enable the appropriate workflow only after verifying the custom dependencies, dataset, paths, and hardware setup.
 
-1. loads the NYU-v2 dataset
-2. instantiates the multi-task model
-3. builds the loss and metric dictionaries for each task
-4. trains the model with a shared backbone and task heads
-5. logs validation results
-6. saves experiment artifacts and output summaries
+Other entry points include:
 
-## Output Files
+- `jupyter notebook MTL_test1.ipynb` — inspect and run notebook experiments.
+- `python check_sparsity.py` — analyze sparsity of a configured/saved model; update its dataset and checkpoint paths first.
+- `python print_size_of_model.py` — compare model sizes and evaluate inference behavior using the quantization utilities; update its imports and paths first.
 
-The repository generates several result files during training and evaluation, including:
+## What the experiments measure
 
-- `validation_results.txt`
-- `validation_results2.txt`
-- `compression_rate.txt`
-- `actual_jobs.txt`
-- `individual_model_evals.txt`
-- `output*.txt`
-- `graphs/`
+The repository includes code and result files for examining:
 
-These files help track model quality, task metrics, and compression-related measurements.
+- Per-task training and validation losses and metrics
+- Weight sparsity and compression-related measurements
+- Model checkpoint size before and after quantization
+- Inference timing and potential speedup
+- Experiment trends visualized with plots and error bars
 
-## Notes and Limitations
+Results depend on the dataset preparation, model/checkpoint, quantization configuration, device, and software versions. Treat saved text files and plots as experiment artifacts rather than guaranteed benchmark results.
 
-This project is research-focused and includes environment-specific paths and experimental artifacts. Some files appear to be tied to local execution setups, so users may need to:
+## Reproducibility notes
 
-- adjust dataset paths
-- update dependency versions for their environment
-- verify submodule or package availability for custom utilities
-- run notebook experiments separately if needed
-
-## Suggested Improvements
-
-For a cleaner and more reproducible research workflow, the project could benefit from:
-
-- a configuration file for hyperparameters
-- standardized output directories
-- explicit README setup instructions for dataset acquisition
-- version pinning for PyTorch and related libraries
-- optional command-line arguments for training configuration
-- a license file if the project is intended for broader distribution
-
-## Research Use
-
-This repository is suitable for:
-
-- multi-task learning research
-- neural network compression experiments
-- sparsity-aware model evaluation
-- exploring quantization trade-offs in dense prediction tasks
-- analyzing multi-task performance under shared representation constraints
-
-## Contributing
-
-Contributions, issue reports, and improvements are welcome. If you use or extend this project, consider documenting:
-
-- dataset preparation steps
-- reproduction commands
-- model configuration changes
-- metric interpretation
+- Dependency versions are not pinned in `requirements.txt`; record your Python, PyTorch, Torchvision, CUDA, and TensorBoard versions when reproducing an experiment.
+- Set and document random seeds and experiment parameters when comparing runs.
+- Confirm that the NYU-v2 data paths and custom `TreeMTL`/`DGMSParent` modules match the code's expectations.
+- Check the script configuration carefully: several files are research scripts tied to a specific environment, rather than a fully configurable command-line application.
 
 ## License
 
-This repository does not currently appear to include a license file. If you intend to distribute or share the project publicly, consider adding an appropriate open-source license.
-
-## Summary
-
-`MTL_QUANTIZATION` is a compact but research-oriented PyTorch repository for studying multi-task learning under compression-oriented constraints. It is a good fit for experimentation, model analysis, and exploration of quantization effects in a shared-backbone multi-task setting.
+No license file is currently provided. Unless a license is added, reuse and redistribution are not explicitly granted.
